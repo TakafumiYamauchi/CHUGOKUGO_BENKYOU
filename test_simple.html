@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>HSK テスト</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .current-word { font-size: 28px; margin: 15px 0; font-weight: bold; }
+    .current-info { margin: 8px 0; line-height: 1.6; }
+    button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>HSK 音声学習プレイヤー（テスト版）</h1>
+  
+  <button onclick="testDisplay()">表示テスト</button>
+  
+  <div class="current-word" id="currentWord">-</div>
+  <div class="current-info" id="currentPinyin">-</div>
+  <div class="current-info" id="currentMeaning">-</div>
+  <div class="current-info" id="currentSentence">-</div>
+  <div class="current-info" id="currentTranslation">-</div>
+  <div>進捗: <span id="currentIndex">0</span> / <span id="totalWords">0</span></div>
+  
+  <div id="debugLog" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; height: 150px; overflow-y: scroll; font-size: 12px;">
+    --- デバッグログ ---<br>
+  </div>
+  
+  <script>
+    const testWords = [
+      {
+        level: '1',
+        unit: '1',
+        group: '1',
+        word: '爱',
+        pinyin: 'ài',
+        meaning: '～を好む・～が好きだ',
+        sentence: '我爱吃这个菜。',
+        translation: '私はこの料理を食べるのが好きです。'
+      },
+      {
+        level: '1',
+        unit: '2',
+        group: '1',
+        word: '点',
+        pinyin: 'diǎn',
+        meaning: '時・点・少し',
+        sentence: '现在三点。',
+        translation: '今3時です。'
+      }
+    ];
+    
+    let words = [...testWords];
+    let currentWordIndex = 0;
+    
+    function debugLog(message) {
+      const logContainer = document.getElementById('debugLog');
+      const timestamp = new Date().toISOString();
+      const logMessage = `[${timestamp}] ${message}`;
+      console.log(logMessage);
+      if (logContainer) {
+        logContainer.innerHTML += logMessage + '<br>';
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+    }
+    
+    function updateDisplay() {
+      debugLog('updateDisplay() 開始');
+      
+      if (currentWordIndex < 0 || currentWordIndex >= words.length) {
+        debugLog('無効なcurrentWordIndex: ' + currentWordIndex);
+        return;
+      }
+      
+      const word = words[currentWordIndex];
+      debugLog('表示する単語: ' + JSON.stringify(word));
+      
+      document.getElementById('currentWord').textContent = word.word;
+      document.getElementById('currentPinyin').textContent = word.pinyin;
+      document.getElementById('currentMeaning').textContent = '訳: ' + word.meaning;
+      document.getElementById('currentSentence').textContent = '例文: ' + word.sentence;
+      document.getElementById('currentTranslation').textContent = '例文訳: ' + word.translation;
+      document.getElementById('currentIndex').textContent = currentWordIndex + 1;
+      document.getElementById('totalWords').textContent = words.length;
+      
+      debugLog('updateDisplay() 完了');
+    }
+    
+    function testDisplay() {
+      debugLog('テストボタンがクリックされました');
+      currentWordIndex = 0;
+      updateDisplay();
+    }
+    
+    // 初期化
+    debugLog('初期化開始');
+    debugLog('総単語数: ' + words.length);
+    updateDisplay();
+    debugLog('初期化完了');
+  </script>
+</body>
+</html> 
