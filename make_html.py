@@ -3,22 +3,14 @@ import pandas as pd
 # CSV を読み込み
 df = pd.read_csv('all_sentences_with_ruby.csv', dtype=str)
 
-# アプリ内の表示順序を計算する関数
-def calculate_app_order(unit):
-    """unitからアプリ内の表示順序を計算"""
-    unit_int = int(unit)
-    # グループ番号: ((unit - 1) % 71) + 1
-    group = ((unit_int - 1) % 71) + 1
-    # グループ内の順番: ((unit - 1) // 71) + 1
-    position_in_group = ((unit_int - 1) // 71) + 1
-    # アプリ内の表示順序を計算（グループを横断する順序）
-    return (position_in_group - 1) * 71 + group
+# ---- ここから並び替えロジックを修正 ----
+# 元のCSVはデータベースで既に「レベル / グループ / 単元」順に並んでいる。
+# ただし念のため、同じキーで再ソートしておく。
+# これにより make_audio_player.py と完全に同じ並びになる。
 
-# 表示順序を追加
-df['app_order'] = df['単元'].apply(calculate_app_order)
+df = df.sort_values(['レベル', 'グループ', '単元'], key=lambda col: col.astype(int))
 
-# アプリの表示順序でソート
-df = df.sort_values(['レベル', 'app_order'])
+# ---- ここまで ----
 
 # HTML ヘッダー部
 html_head = """<!DOCTYPE html>
