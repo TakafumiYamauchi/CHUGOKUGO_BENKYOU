@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>デバッグテスト - HSK音声学習プレイヤー</title>
+</head>
+<body>
+  <h1>デバッグテスト</h1>
+  <div id="status">読み込み中...</div>
+  <div id="wordCount">-</div>
+  <div id="errorLog"></div>
+  
+  <script>
+    console.log('=== デバッグ開始 ===');
+    
+    // 実際の生成されたHTMLファイルの冒頭部分を確認
+    document.getElementById('status').textContent = '実際のHTMLファイル読み込み確認中...';
+    
+    // HTMLファイルの最初の数行を読み込んでテスト
+    fetch('audio_player_mobile_enhanced.html')
+      .then(response => response.text())
+      .then(html => {
+        // allWordsDataの定義部分を探す
+        const allWordsMatch = html.match(/const allWordsData = \[([\s\S]*?)\]/);
+        if (allWordsMatch) {
+          console.log('✅ allWordsData配列が見つかりました');
+          
+          // 最初の数個のオブジェクトを抽出
+          const firstObjectMatch = html.match(/{\s*level:.*?}/);
+          if (firstObjectMatch) {
+            console.log('✅ 最初の単語オブジェクト:', firstObjectMatch[0]);
+            document.getElementById('status').textContent = '✅ 単語データが正しく生成されています';
+          } else {
+            console.error('❌ 単語オブジェクトが見つかりません');
+            document.getElementById('status').textContent = '❌ 単語オブジェクトの形式に問題があります';
+          }
+        } else {
+          console.error('❌ allWordsData配列が見つかりません');
+          document.getElementById('status').textContent = '❌ allWordsData配列が生成されていません';
+        }
+        
+        // ファイルサイズ確認
+        const sizeKB = (html.length / 1024).toFixed(1);
+        document.getElementById('wordCount').textContent = `HTMLファイルサイズ: ${sizeKB}KB`;
+        
+      })
+      .catch(error => {
+        console.error('ファイル読み込みエラー:', error);
+        document.getElementById('status').textContent = '❌ HTMLファイルの読み込みに失敗';
+      });
+    
+    // エラーハンドラー
+    window.addEventListener('error', function(event) {
+      console.error('エラー:', event);
+      const errorDiv = document.getElementById('errorLog');
+      errorDiv.innerHTML += `<p style="color: red;">エラー: ${event.message}</p>`;
+    });
+    
+    console.log('=== デバッグ完了 ===');
+  </script>
+</body>
+</html> 

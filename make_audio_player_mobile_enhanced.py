@@ -756,6 +756,21 @@ html_content += """    ];
     }
     
     async function clearCache() {
+      // キャッシュクリア前の確認ダイアログ
+      const userConfirmed = confirm(
+        'キャッシュをクリアしますか？\n\n' +
+        '⚠️ 注意: すべての音声データをダウンロードするのに数時間かかります。\n' +
+        '本当にキャッシュをクリアしますか？\n\n' +
+        '「OK」を押すとキャッシュが削除されます。\n' +
+        '「キャンセル」を押すと操作を中止します。'
+      );
+      
+      if (!userConfirmed) {
+        // ユーザーがキャンセルした場合
+        document.getElementById('cacheStatus').textContent = 'キャッシュクリアを中止しました';
+        return;
+      }
+      
       try {
         if (diskCache) {
           await caches.delete(cacheName);

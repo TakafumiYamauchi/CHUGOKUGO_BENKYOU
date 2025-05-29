@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>データロードテスト</title>
+</head>
+<body>
+  <h1>データロードテスト</h1>
+  <div>
+    <p>総単語数: <span id="totalCount">-</span></p>
+    <p>最初の単語: <span id="firstWord">-</span></p>
+    <p>データ例: <span id="dataExample">-</span></p>
+  </div>
+  
+  <script>
+    // HTMLファイルから配列データを抽出
+    fetch('audio_player_mobile_enhanced.html')
+      .then(response => response.text())
+      .then(html => {
+        // allWordsの配列データを抽出
+        const match = html.match(/const allWords = \[([\s\S]*?)\];/);
+        if (match) {
+          try {
+            const arrayData = '[' + match[1] + ']';
+            const allWords = eval(arrayData);
+            
+            document.getElementById('totalCount').textContent = allWords.length;
+            if (allWords.length > 0) {
+              document.getElementById('firstWord').textContent = allWords[0].word;
+              document.getElementById('dataExample').textContent = JSON.stringify(allWords[0], null, 2);
+            }
+            
+            console.log('データ正常読み込み完了:', allWords.length + '件');
+            console.log('最初のデータ:', allWords[0]);
+          } catch (error) {
+            console.error('データ解析エラー:', error);
+            document.getElementById('dataExample').textContent = 'データ解析エラー: ' + error.message;
+          }
+        } else {
+          console.error('allWords配列が見つかりません');
+          document.getElementById('dataExample').textContent = 'allWords配列が見つかりません';
+        }
+      })
+      .catch(error => {
+        console.error('ファイル読み込みエラー:', error);
+        document.getElementById('dataExample').textContent = 'ファイル読み込みエラー: ' + error.message;
+      });
+  </script>
+</body>
+</html> 
