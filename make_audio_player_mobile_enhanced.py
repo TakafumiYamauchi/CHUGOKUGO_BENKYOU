@@ -449,19 +449,19 @@ html_content = """<!DOCTYPE html>
     <h1>HSK 音声学習プレイヤー</h1>
     
     <div class="offline-controls">
-      <h3>🎵 オフライン音声キャッシュ</h3>
+      <h3>💾 オフライン音声キャッシュ（ディスク保存）</h3>
       <div class="offline-status">
         <div class="status-indicator status-online" id="statusIndicator"></div>
         <span id="statusText">オンライン</span>
       </div>
       <div class="mobile-controls">
-        <button class="btn-primary" onclick="startCaching()">📥 音声をキャッシュ</button>
+        <button class="btn-primary" onclick="startCaching()">💾 音声をディスクキャッシュ</button>
         <button class="btn-danger" onclick="clearCache()">🗑️ キャッシュクリア</button>
       </div>
       <div class="cache-progress">
         <div class="cache-progress-bar" id="cacheProgressBar"></div>
       </div>
-      <div id="cacheStatus">キャッシュ準備完了</div>
+      <div id="cacheStatus">ディスクキャッシュ準備完了</div>
     </div>
     
     <div class="player-status">
@@ -626,13 +626,29 @@ html_content += """    ];
     let maxRangeRepeat = 1;
     let userSpecifiedStartIndex = -1;
     
-    // オフラインキャッシュ関連
-    let audioCache = new Map();
+    // オフラインキャッシュ関連（Cache API使用でディスク保存）
+    let diskCache = null;
+    const cacheName = 'hsk-audio-cache-v1';
     let cacheProgress = 0;
     let isCaching = false;
     
     const audioPlayer = document.getElementById('audioPlayer');
     const startUnitSelect = document.getElementById('startUnitSelect');
+    
+    // Cache API初期化
+    async function initializeCache() {
+      try {
+        diskCache = await caches.open(cacheName);
+        console.log('ディスクキャッシュ初期化完了');
+      } catch (error) {
+        console.warn('Cache API未対応のブラウザです:', error);
+        // フォールバック: 少量のメモリキャッシュのみ使用
+        diskCache = null;
+      }
+    }
+    
+    // 初期化実行
+    initializeCache();
     
     // Service Worker登録（オフライン機能用）
     if ('serviceWorker' in navigator) {
@@ -665,9 +681,14 @@ html_content += """    ];
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
     
-    // 音声キャッシュ機能
+    // 音声キャッシュ機能（ディスク保存）
     async function startCaching() {
       if (isCaching) return;
+      
+      if (!diskCache) {
+        alert('申し訳ございません。このブラウザではディスクキャッシュがサポートされていません。');
+        return;
+      }
       
       isCaching = true;
       const statusIndicator = document.getElementById('statusIndicator');
@@ -676,7 +697,7 @@ html_content += """    ];
       const cacheStatus = document.getElementById('cacheStatus');
       
       statusIndicator.className = 'status-indicator status-caching';
-      statusText.textContent = 'キャッシュ中...';
+      statusText.textContent = 'ディスクキャッシュ中...';
       
       const audioFiles = [];
       words.forEach(word => {
@@ -687,19 +708,35 @@ html_content += """    ];
       
       const uniqueFiles = [...new Set(audioFiles)];
       let cached = 0;
+      let totalSize = 0;
       
       for (const audioFile of uniqueFiles) {
         try {
+          // すでにキャッシュされているかチェック
+          const cachedResponse = await diskCache.match(audioFile);
+          if (cachedResponse) {
+            cached++;
+            const progress = (cached / uniqueFiles.length) * 100;
+            progressBar.style.width = progress + '%';
+            cacheStatus.textContent = `キャッシュ済み: ${cached}/${uniqueFiles.length} (ディスク保存)`;
+            continue;
+          }
+          
+          // ファイルをダウンロードしてディスクキャッシュに保存
           const response = await fetch(audioFile);
           if (response.ok) {
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            audioCache.set(audioFile, url);
+            // ファイルサイズ情報取得
+            const fileSize = parseInt(response.headers.get('content-length') || '0');
+            totalSize += fileSize;
+            
+            // Cache APIにレスポンスを保存（ディスクに保存される）
+            await diskCache.put(audioFile, response.clone());
             cached++;
             
             const progress = (cached / uniqueFiles.length) * 100;
             progressBar.style.width = progress + '%';
-            cacheStatus.textContent = `キャッシュ中: ${cached}/${uniqueFiles.length}`;
+            const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+            cacheStatus.textContent = `キャッシュ中: ${cached}/${uniqueFiles.length} (${sizeMB}MB ディスク保存)`;
           }
         } catch (error) {
           console.warn('音声ファイルのキャッシュに失敗:', audioFile, error);
@@ -708,8 +745,9 @@ html_content += """    ];
       
       isCaching = false;
       statusIndicator.className = 'status-indicator status-online';
-      statusText.textContent = 'キャッシュ完了';
-      cacheStatus.textContent = `キャッシュ完了: ${cached}ファイル`;
+      statusText.textContent = 'ディスクキャッシュ完了';
+      const finalSizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+      cacheStatus.textContent = `キャッシュ完了: ${cached}ファイル (${finalSizeMB}MB ディスク保存)`;
       
       // 振動フィードバック（対応デバイスのみ）
       if (navigator.vibrate) {
@@ -717,30 +755,55 @@ html_content += """    ];
       }
     }
     
-    function clearCache() {
-      audioCache.forEach(url => URL.revokeObjectURL(url));
-      audioCache.clear();
-      document.getElementById('cacheProgressBar').style.width = '0%';
-      document.getElementById('cacheStatus').textContent = 'キャッシュクリア完了';
-      
-      if (navigator.vibrate) {
-        navigator.vibrate(200);
+    async function clearCache() {
+      try {
+        if (diskCache) {
+          await caches.delete(cacheName);
+          diskCache = await caches.open(cacheName);
+        }
+        
+        document.getElementById('cacheProgressBar').style.width = '0%';
+        document.getElementById('cacheStatus').textContent = 'ディスクキャッシュクリア完了';
+        
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+      } catch (error) {
+        console.error('キャッシュクリアエラー:', error);
+        document.getElementById('cacheStatus').textContent = 'キャッシュクリアに失敗しました';
       }
     }
     
-    // 音声再生（キャッシュ優先）
-    function playAudio(src) {
-      return new Promise((resolve, reject) => {
-        if (audioCache.has(src)) {
-          audioPlayer.src = audioCache.get(src);
-        } else {
-          audioPlayer.src = src;
+    // 音声再生（ディスクキャッシュ優先）
+    async function playAudio(src) {
+      try {
+        let audioUrl = src;
+        
+        // ディスクキャッシュから取得を試行
+        if (diskCache) {
+          const cachedResponse = await diskCache.match(src);
+          if (cachedResponse) {
+            // キャッシュされた音声ファイルのURLを取得
+            audioUrl = cachedResponse.url;
+            console.log('ディスクキャッシュから音声再生:', src);
+          }
         }
         
-        audioPlayer.play()
-          .then(resolve)
-          .catch(reject);
-      });
+        return new Promise((resolve, reject) => {
+          audioPlayer.src = audioUrl;
+          audioPlayer.play()
+            .then(resolve)
+            .catch(reject);
+        });
+      } catch (error) {
+        console.warn('キャッシュ取得失敗、元URLで再生:', error);
+        return new Promise((resolve, reject) => {
+          audioPlayer.src = src;
+          audioPlayer.play()
+            .then(resolve)
+            .catch(reject);
+        });
+      }
     }
     
     function updateDisplay() {
@@ -1263,5 +1326,5 @@ with open('audio_player_mobile_enhanced.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
 print("→ audio_player_mobile_enhanced.html を生成しました。")
-print("→ スマホ対応とオフライン音声キャッシュ機能を搭載！")
-print("→ タッチ操作に最適化、美しいUI、オフライン音声再生対応") 
+print("→ スマホ対応とオフライン音声ディスクキャッシュ機能を搭載！")
+print("→ タッチ操作に最適化、美しいUI、メモリ効率的なキャッシュシステム") 
