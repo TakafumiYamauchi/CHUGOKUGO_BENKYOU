@@ -15,8 +15,8 @@
       --chinese-word-size: 36px;
       --chinese-pinyin-size: 26px;
       --japanese-meaning-size: 22px;
-      --chinese-sentence-size: 20px;
-      --japanese-sentence-size: 18px;
+      --chinese-sentence-size: 24px;
+      --japanese-sentence-size: 20px;
       
       /* 色設定 */
       --primary-color: #007AFF;
@@ -33,7 +33,7 @@
       --section-margin: 15px;
       
       /* アニメーション */
-      --transition-duration: 0.1s;
+      --transition-duration: 0.0s;
       --pulse-duration: 1.5s;
     }
     
@@ -645,7 +645,9 @@
       defaultJapaneseSpeed: 1.6,
       defaultRepeatCount: 5,
       searchResultDisplayCount: 10,
-      rangeDefaultRepeat: 3
+      rangeDefaultRepeat: 3,
+      audioIntervalMs: 20,
+      sentenceRepeatIntervalMs: 20
     };
     
     const allWords = [
@@ -70768,12 +70770,12 @@
               debugLog(`エラー: ${error.message}`);
               // エラーの場合は次のフェーズへ
               currentPhase++;
-              setTimeout(() => playCurrentPhase(), 50);
+              setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
             });
           } else {
             debugLog('単語音声ファイルがありません');
             currentPhase++;
-            setTimeout(() => playCurrentPhase(), 50);
+            setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
           }
           break;
           
@@ -70789,12 +70791,12 @@
               debugLog(`エラー: ${error.message}`);
               // エラーの場合は次のフェーズへ
               currentPhase++;
-              setTimeout(() => playCurrentPhase(), 50);
+              setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
             });
           } else {
             debugLog('日本語音声ファイルがありません');
             currentPhase++;
-            setTimeout(() => playCurrentPhase(), 50);
+            setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
           }
           break;
           
@@ -70845,7 +70847,7 @@
               console.error('例文音声の再生エラー:', error);
               nextWord();
             });
-          }, 50);
+          }, CONFIG.sentenceRepeatIntervalMs);
         } else {
           // maxSentenceRepeat回再生完了、次の単語へ（範囲制御付き）
           sentenceRepeatCount = 0;

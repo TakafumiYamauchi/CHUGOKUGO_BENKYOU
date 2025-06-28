@@ -14,13 +14,15 @@ import os
 CHINESE_WORD_SIZE = "36px"      # 中国語単語のサイズ（デフォルト: 32px → 36px）
 CHINESE_PINYIN_SIZE = "26px"    # ピンインのサイズ（デフォルト: 22px → 26px）
 JAPANESE_MEANING_SIZE = "22px"  # 日本語訳のサイズ（デフォルト: 20px → 22px）
-CHINESE_SENTENCE_SIZE = "20px"  # 例文(中国語)のサイズ（デフォルト: 18px → 20px）
-JAPANESE_SENTENCE_SIZE = "18px" # 例文訳(日本語)のサイズ（デフォルト: 16px → 18px）
+CHINESE_SENTENCE_SIZE = "24px"  # 例文(中国語)のサイズ（デフォルト: 18px → 20px）
+JAPANESE_SENTENCE_SIZE = "20px" # 例文訳(日本語)のサイズ（デフォルト: 16px → 18px）
 
 # 2. 再生設定のデフォルト値
 DEFAULT_CHINESE_SPEED = "0.6"   # 中国語のデフォルト再生速度
 DEFAULT_JAPANESE_SPEED = "1.6"  # 日本語のデフォルト再生速度
 DEFAULT_REPEAT_COUNT = "5"      # 例文のデフォルト繰り返し回数
+AUDIO_INTERVAL_MS = 20          # 音声再生間のインターバル（ミリ秒）
+SENTENCE_REPEAT_INTERVAL_MS = 20  # 例文リピート間のインターバル（ミリ秒）
 
 # 3. ボタンとコントロールのサイズ
 BUTTON_PADDING = "12px 16px"    # ボタンの内側余白
@@ -43,7 +45,7 @@ CARD_PADDING = "15px"           # カードの内側余白
 SECTION_MARGIN = "15px"         # セクション間のマージン
 
 # 6. アニメーション設定
-TRANSITION_DURATION = "0.1s"    # トランジション時間
+TRANSITION_DURATION = "0.0s"    # トランジション時間
 PULSE_DURATION = "1.5s"         # 再生中のパルスアニメーション時間
 
 # 7. 範囲指定再生の設定
@@ -769,7 +771,9 @@ html_content += f"""            </select>
       defaultJapaneseSpeed: {DEFAULT_JAPANESE_SPEED},
       defaultRepeatCount: {DEFAULT_REPEAT_COUNT},
       searchResultDisplayCount: {SEARCH_RESULT_DISPLAY_COUNT},
-      rangeDefaultRepeat: {RANGE_DEFAULT_REPEAT}
+      rangeDefaultRepeat: {RANGE_DEFAULT_REPEAT},
+      audioIntervalMs: {AUDIO_INTERVAL_MS},
+      sentenceRepeatIntervalMs: {SENTENCE_REPEAT_INTERVAL_MS}
     }};
     
     const allWords = [
@@ -1098,12 +1102,12 @@ html_content += f"""    ];
               debugLog(`エラー: ${{error.message}}`);
               // エラーの場合は次のフェーズへ
               currentPhase++;
-              setTimeout(() => playCurrentPhase(), 50);
+              setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
             }});
           }} else {{
             debugLog('単語音声ファイルがありません');
             currentPhase++;
-            setTimeout(() => playCurrentPhase(), 50);
+            setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
           }}
           break;
           
@@ -1119,12 +1123,12 @@ html_content += f"""    ];
               debugLog(`エラー: ${{error.message}}`);
               // エラーの場合は次のフェーズへ
               currentPhase++;
-              setTimeout(() => playCurrentPhase(), 50);
+              setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
             }});
           }} else {{
             debugLog('日本語音声ファイルがありません');
             currentPhase++;
-            setTimeout(() => playCurrentPhase(), 50);
+            setTimeout(() => playCurrentPhase(), CONFIG.audioIntervalMs);
           }}
           break;
           
@@ -1175,7 +1179,7 @@ html_content += f"""    ];
               console.error('例文音声の再生エラー:', error);
               nextWord();
             }});
-          }}, 50);
+          }}, CONFIG.sentenceRepeatIntervalMs);
         }} else {{
           // maxSentenceRepeat回再生完了、次の単語へ（範囲制御付き）
           sentenceRepeatCount = 0;
